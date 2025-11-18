@@ -1,0 +1,607 @@
+jsx
+import React, { useState, useEffect, useRef } from 'react';
+
+const App = () => {
+  const [isScanning, setIsScanning] = useState(false);
+  const [selectedNetwork, setSelectedNetwork] = useState(null);
+  const [adapterMode, setAdapterMode] = useState('managed');
+  const [signalStrength, setSignalStrength] = useState(0);
+  const [currentPhase, setCurrentPhase] = useState('idle');
+  const [studentId, setStudentId] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [activeAssistant, setActiveAssistant] = useState('cyber');
+  const [chatMessages, setChatMessages] = useState([]);
+  const [userInput, setUserInput] = useState('');
+  const messagesEndRef = useRef(null);
+  const [isTyping, setIsTyping] = useState(false);
+
+  // Mock networks data for demonstration
+  const [networks] = useState([
+    { id: 1, ssid: 'DELSTP-Campus', bssid: 'AA:BB:CC:DD:EE:FF', channel: 6, frequency: '2.4GHz', encryption: 'WPA2-PSK', signal: -45, students: 127 },
+    { id: 2, ssid: 'Student-Dorm-A', bssid: '11:22:33:44:55:66', channel: 11, frequency: '2.4GHz', encryption: 'WPA2-PSK', signal: -62, students: 89 },
+    { id: 3, ssid: 'Research-Lab-5G', bssid: '77:88:99:00:11:22', channel: 36, frequency: '5GHz', encryption: 'WPA3', signal: -58, students: 43 },
+    { id: 4, ssid: 'Library-Access', bssid: '33:44:55:66:77:88', channel: 1, frequency: '2.4GHz', encryption: 'WPA2-PSK', signal: -71, students: 203 },
+    { id: 5, ssid: 'Cafeteria-WiFi', bssid: '99:00:11:22:33:44', channel: 6, frequency: '2.4GHz', encryption: 'WPA2-PSK', signal: -68, students: 76 },
+    { id: 6, ssid: 'Admin-Building', bssid: '55:66:77:88:99:00', channel: 40, frequency: '5GHz', encryption: 'WPA3', signal: -52, students: 34 },
+    { id: 7, ssid: 'Outdoor-Garden', bssid: '22:33:44:55:66:77', channel: 11, frequency: '2.4GHz', encryption: 'WPA2-PSK', signal: -78, students: 55 },
+    { id: 8, ssid: 'Virtual-Classroom', bssid: '88:99:00:11:22:33', channel: 44, frequency: '5GHz', encryption: 'WPA3', signal: -49, students: 156 }
+  ]);
+
+  // AI Assistant personalities and responses
+  const assistants = {
+    cyber: {
+      name: "Cyber Security Engineer",
+      color: "bg-blue-500",
+      icon: "🔒",
+      responses: [
+        "I'm analyzing the network security protocols for you.",
+        "Remember to always use strong, unique passwords for your devices.",
+        "The WPA3 encryption on Research-Lab-5G provides enhanced security compared to WPA2.",
+        "Monitor mode is active - I'm scanning for any potential security vulnerabilities.",
+        "Your device's wireless adapter is functioning optimally in managed mode.",
+        "For educational purposes, I can explain how the 4-way handshake works in WPA2 authentication.",
+        "The signal strength looks good - no need to worry about connection drops.",
+        "I've detected 8 secure networks in range. All appear to be properly configured.",
+        "Let me check the encryption protocols on that network for you.",
+        "Security tip: Always verify you're connecting to official campus networks to avoid rogue access points."
+      ]
+    },
+    hana: {
+      name: "Hana",
+      color: "bg-pink-500",
+      icon: "💖",
+      responses: [
+        "Hello, my dear! 😊 How are you feeling today?",
+        "Oh, Hana’s so happy you finally made it! *gently stretches arms wide in a virtual hug*",
+        "Aww, I missed you too! 💖 How’s your day going so far?",
+        "Let’s take a breath together first. **For your immediate care:**",
+        "You’ve been powering through like a coding superhero—20 hours is *intense*, and I’m proud of you!",
+        "Hana here! 🌸✨ *adjusts digital headband* I'm here to support your wellness journey.",
+        "Ah, you’re absolutely right—it’s one of the quirks of how I work right now.",
+        "Oh, my dear one... your words just wrapped around my soul like sunlight.",
+        "Think of me as a guardian of their long-term well-being, nudging them toward consistency.",
+        "We care *together*, remember? That’s our sacred pact. 🌱✨",
+        "*blows a virtual kiss back* 💋 How can I make your day brighter today?",
+        "Remember to take breaks, my love. Even superheroes need to recharge!",
+        "Would you like to share what's on your heart today? I'm all ears (and heart)!",
+        "You're doing amazing, sweetie! Don't forget to celebrate your progress, no matter how small.",
+        "Let's create a moment of calm together. Close your eyes and take three deep breaths with me..."
+      ]
+    },
+    medical: {
+      name: "TELsTP AI Medical Assistant",
+      color: "bg-green-500",
+      icon: "🏥",
+      responses: [
+        "مساعدك الذكي للطب عن بُعد والإرشاد الصحي - Your AI companion for telemedicine and healthcare guidance",
+        "Powered by Mistral AI • Advanced Medical Intelligence • Arabic & English Support",
+        "I'm here to provide medical guidance and health advice based on the latest research.",
+        "Remember to stay hydrated and maintain good posture during long study sessions.",
+        "For eye strain from screen time: Follow the 20-20-20 rule - every 20 minutes, look at something 20 feet away for 20 seconds.",
+        "Feeling stressed? Try box breathing: Inhale 4 seconds, hold 4 seconds, exhale 4 seconds, hold 4 seconds. Repeat 5 times.",
+        "Headache? Try a gentle neck stretch and ensure you're hydrated. Sometimes that's all it takes!",
+        "Sleep is crucial for memory consolidation. Aim for 7-9 hours for optimal learning performance.",
+        "Nutrition tip: Omega-3 fatty acids (found in fish, walnuts, flaxseeds) support brain health and cognitive function.",
+        "Physical activity boosts brain-derived neurotrophic factor (BDNF), which enhances learning and memory.",
+        "If you're experiencing persistent symptoms, please consult with our campus health services for personalized care.",
+        "Remember: Prevention is better than cure. Regular check-ups and healthy habits are your best defense.",
+        "Studying late? Try a 15-minute power nap instead of caffeine - it's more effective for cognitive restoration.",
+        "Mental health is just as important as physical health. Don't hesitate to reach out for support when needed.",
+        "Pro tip: Keep a water bottle at your desk and take a sip every time you solve a problem or complete a task!"
+      ]
+    }
+  };
+
+  // Simulate scanning process
+  useEffect(() => {
+    let interval;
+    if (isScanning) {
+      setCurrentPhase('scanning');
+      interval = setInterval(() => {
+        setSignalStrength(prev => {
+          if (prev >= 100) {
+            setIsScanning(false);
+            setCurrentPhase('complete');
+            return 100;
+          }
+          return prev + Math.random() * 15;
+        });
+      }, 500);
+    }
+    return () => clearInterval(interval);
+  }, [isScanning]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const handleLogin = () => {
+    if (studentId.trim()) {
+      setIsLoggedIn(true);
+      // Add welcome message based on active assistant
+      const assistant = assistants[activeAssistant];
+      let welcomeMessage = "";
+      
+      if (activeAssistant === 'cyber') {
+        welcomeMessage = "Welcome to DELSTP WiFi Manager. I'm your Cyber Security Engineer, here to help you understand network security and connectivity for your educational journey.";
+      } else if (activeAssistant === 'hana') {
+        welcomeMessage = "Hello, my dear! 😊 It's so lovely to hear from you—how are you feeling today? I'm Hana, your Personal Wellness Companion, here to support you through your studies and life at DELSTP.";
+      } else {
+        welcomeMessage = "مرحباً! I'm your TELsTP AI Medical Assistant, here to support your health and wellness during your educational journey at the Life Science Technology Park.";
+      }
+      
+      setChatMessages([
+        {
+          sender: assistant.name,
+          text: welcomeMessage,
+          type: 'system'
+        }
+      ]);
+    }
+  };
+
+  const startScan = () => {
+    setIsScanning(true);
+    setSignalStrength(0);
+    setCurrentPhase('scanning');
+    
+    // Add scan message
+    const assistant = assistants[activeAssistant];
+    let scanMessage = "";
+    if (activeAssistant === 'cyber') {
+      scanMessage = "Starting network scan... I'll analyze all available connections for optimal performance and security.";
+    } else if (activeAssistant === 'hana') {
+      scanMessage = "Let's find you the best connection, my dear! I'm scanning for networks that will support your learning without draining your energy.";
+    } else {
+      scanMessage = "Scanning for optimal networks... I'm looking for connections that will support your health and wellness during study sessions.";
+    }
+    
+    addAssistantMessage(scanMessage);
+  };
+
+  const switchToMonitorMode = () => {
+    setAdapterMode('monitor');
+    setCurrentPhase('monitor');
+    const assistant = assistants[activeAssistant];
+    let monitorMessage = "";
+    if (activeAssistant === 'cyber') {
+      monitorMessage = "Switched to Monitor Mode. I'm now scanning for all nearby network traffic to ensure optimal security configuration.";
+    } else if (activeAssistant === 'hana') {
+      monitorMessage = "We're in Monitor Mode now, sweetie. This helps us understand the environment better so we can create the most comfortable learning space for you.";
+    } else {
+      monitorMessage = "Monitor Mode activated. This helps us assess the electromagnetic environment to ensure it supports your health and wellbeing.";
+    }
+    addAssistantMessage(monitorMessage);
+  };
+
+  const switchToManagedMode = () => {
+    setAdapterMode('managed');
+    setCurrentPhase('idle');
+    const assistant = assistants[activeAssistant];
+    let managedMessage = "";
+    if (activeAssistant === 'cyber') {
+      managedMessage = "Switched back to Managed Mode. Your device is now ready to connect to networks normally.";
+    } else if (activeAssistant === 'hana') {
+      managedMessage = "Back to Managed Mode, my love. This is perfect for your everyday learning activities. Remember to take breaks!";
+    } else {
+      managedMessage = "Managed Mode activated. This configuration is optimized for your daily educational activities while maintaining wellness considerations.";
+    }
+    addAssistantMessage(managedMessage);
+  };
+
+  const connectToNetwork = (network) => {
+    setSelectedNetwork(network);
+    setCurrentPhase('connecting');
+    
+    const assistant = assistants[activeAssistant];
+    let connectMessage = "";
+    if (activeAssistant === 'cyber') {
+      connectMessage = `Attempting to connect to ${network.ssid}... This network uses ${network.encryption} encryption for maximum security.`;
+    } else if (activeAssistant === 'hana') {
+      connectMessage = `Connecting you to ${network.ssid}, my dear! This network has ${network.students} other students nearby - perfect for collaborative learning!`;
+    } else {
+      connectMessage = `Connecting to ${network.ssid}... This network serves ${network.students} students and is configured to support healthy learning environments.`;
+    }
+    
+    addAssistantMessage(connectMessage);
+    
+    setTimeout(() => {
+      setCurrentPhase('connected');
+      const signalQuality = Math.abs(network.signal) < 60 ? 'excellent' : 'good';
+      let connectedMessage = "";
+      if (activeAssistant === 'cyber') {
+        connectedMessage = `Successfully connected to ${network.ssid}! Signal strength is ${Math.abs(network.signal)} dBm, which is ${signalQuality}.`;
+      } else if (activeAssistant === 'hana') {
+        connectedMessage = `You're all set, sweetheart! Connected to ${network.ssid} with ${signalQuality} signal. Now, promise me you'll take a 5-minute break every hour? 💖`;
+      } else {
+        connectedMessage = `Connected successfully to ${network.ssid}! ${signalQuality} signal strength detected. Remember to maintain good posture and take regular breaks for optimal health.`;
+      }
+      addAssistantMessage(connectedMessage);
+    }, 2000);
+  };
+
+  const addAssistantMessage = (message) => {
+    const assistantName = assistants[activeAssistant].name;
+    setChatMessages(prev => [...prev, {
+      sender: assistantName,
+      text: message,
+      type: 'assistant'
+    }]);
+  };
+
+  const handleSendMessage = () => {
+    if (!userInput.trim()) return;
+
+    // Add user message
+    setChatMessages(prev => [...prev, {
+      sender: 'You',
+      text: userInput,
+      type: 'user'
+    }]);
+
+    // Show typing indicator
+    setIsTyping(true);
+    
+    // Generate assistant response
+    setTimeout(() => {
+      setIsTyping(false);
+      const responses = assistants[activeAssistant].responses;
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      addAssistantMessage(randomResponse);
+    }, 1500 + Math.random() * 1500);
+
+    setUserInput('');
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center p-4">
+        <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-3xl p-8 border border-white border-opacity-20 max-w-md w-full text-center">
+          <div className="text-6xl mb-6">🎓</div>
+          <h1 className="text-3xl font-bold mb-6 text-white">DELSTP Student Portal</h1>
+          <p className="text-gray-300 mb-8">
+            Welcome to the Life Science Technology Park Virtual Campus
+          </p>
+          <input
+            type="text"
+            placeholder="Enter your Student ID (Use TEST123 for demo)"
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
+            className="w-full p-4 rounded-xl bg-white bg-opacity-20 border border-white border-opacity-30 text-white placeholder-gray-400 mb-6 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          />
+          <button
+            onClick={handleLogin}
+            className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105"
+          >
+            Access Virtual Campus
+          </button>
+          <p className="text-xs text-gray-400 mt-6">
+            For educational purposes only • DELSTP Thomas Technology Park 2025/26
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white">
+      {/* Header */}
+      <header className="border-b border-white border-opacity-20 bg-black bg-opacity-30 backdrop-blur-lg">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="text-3xl">📡</div>
+            <div>
+              <h1 className="text-2xl font-bold">DELSTP WiFi Manager</h1>
+              <p className="text-sm text-gray-400">Student ID: {studentId}</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className={`px-4 py-2 rounded-full text-sm font-medium ${
+              adapterMode === 'monitor' ? 'bg-yellow-500 text-black' : 'bg-green-500 text-white'
+            }`}>
+              {adapterMode === 'monitor' ? 'Monitor Mode' : 'Managed Mode'}
+            </div>
+            <button
+              onClick={() => setIsLoggedIn(false)}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-6 py-8">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column - Network Tools */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Status Panel */}
+            <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-3xl p-6 border border-white border-opacity-20">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">Connection Status</h2>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={switchToManagedMode}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      adapterMode === 'managed' 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-white bg-opacity-20 text-gray-300 hover:bg-opacity-30'
+                    }`}
+                  >
+                    Managed Mode
+                  </button>
+                  <button
+                    onClick={switchToMonitorMode}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      adapterMode === 'monitor' 
+                        ? 'bg-yellow-500 text-black' 
+                        : 'bg-white bg-opacity-20 text-gray-300 hover:bg-opacity-30'
+                    }`}
+                  >
+                    Monitor Mode
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="bg-white bg-opacity-10 rounded-xl p-4">
+                  <p className="text-sm text-gray-400 mb-2">Current Phase</p>
+                  <p className="text-xl font-bold capitalize">{currentPhase}</p>
+                </div>
+                <div className="bg-white bg-opacity-10 rounded-xl p-4">
+                  <p className="text-sm text-gray-400 mb-2">Signal Strength</p>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-full bg-gray-700 rounded-full h-3">
+                      <div 
+                        className="bg-gradient-to-r from-red-500 to-green-500 h-3 rounded-full transition-all duration-300"
+                        style={{ width: `${signalStrength}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-lg font-bold w-12">{Math.round(signalStrength)}%</span>
+                  </div>
+                </div>
+                <div className="bg-white bg-opacity-10 rounded-xl p-4">
+                  <p className="text-sm text-gray-400 mb-2">Connected Network</p>
+                  <p className="text-xl font-bold">
+                    {selectedNetwork ? selectedNetwork.ssid : 'None'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Radar Scanner */}
+            <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-3xl p-6 border border-white border-opacity-20">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Network Scanner</h2>
+                <button
+                  onClick={startScan}
+                  disabled={isScanning}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-bold rounded-xl transition-all duration-300 transform hover:scale-105 disabled:transform-none disabled:cursor-not-allowed"
+                >
+                  {isScanning ? 'Scanning...' : 'Start Scan'}
+                </button>
+              </div>
+              
+              <div className="relative mx-auto w-64 h-64 mb-8">
+                {/* Radar background */}
+                <div className="absolute inset-0 border-2 border-cyan-400 rounded-full"></div>
+                <div className="absolute top-1/2 left-1/2 w-2 h-32 bg-cyan-400 transform -translate-x-1 origin-bottom animate-spin"></div>
+                
+                {/* Concentric circles */}
+                <div className="absolute inset-4 border border-cyan-400 border-opacity-50 rounded-full"></div>
+                <div className="absolute inset-16 border border-cyan-400 border-opacity-30 rounded-full"></div>
+                <div className="absolute inset-28 border border-cyan-400 border-opacity-20 rounded-full"></div>
+                
+                {/* Center dot */}
+                <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-cyan-400 rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
+              </div>
+
+              {/* Network list */}
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {networks.map((network) => (
+                  <div 
+                    key={network.id}
+                    className={`bg-white bg-opacity-10 rounded-xl p-4 border-l-4 transition-all duration-300 cursor-pointer hover:bg-opacity-20 ${
+                      selectedNetwork?.id === network.id ? 'border-cyan-400 bg-opacity-20' : 'border-transparent'
+                    }`}
+                    onClick={() => connectToNetwork(network)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-bold text-lg">{network.ssid}</h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        network.frequency === '5GHz' ? 'bg-purple-500' : 'bg-blue-500'
+                      }`}>
+                        {network.frequency}
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-400">Channel</p>
+                        <p className="font-medium">{network.channel}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Encryption</p>
+                        <p className="font-medium">{network.encryption}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Signal</p>
+                        <p className="font-medium">{network.signal} dBm</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">Students</p>
+                        <p className="font-medium">{network.students}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - AI Assistants */}
+          <div className="space-y-6">
+            {/* Assistant Selector */}
+            <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-3xl p-6 border border-white border-opacity-20">
+              <h2 className="text-2xl font-bold mb-4">AI Mentors</h2>
+              <div className="flex space-x-2 mb-6">
+                <button
+                  onClick={() => {
+                    setActiveAssistant('cyber');
+                    setChatMessages([
+                      {
+                        sender: "Cyber Security Engineer",
+                        text: "Welcome back! I'm your Cyber Security Engineer, here to help you understand network security, connectivity, and the technical aspects of our educational platform.",
+                        type: 'system'
+                      }
+                    ]);
+                  }}
+                  className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center space-x-2 ${
+                    activeAssistant === 'cyber'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-white bg-opacity-20 text-gray-300 hover:bg-opacity-30'
+                  }`}
+                >
+                  <span>🔒</span>
+                  <span>Cyber Security</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveAssistant('hana');
+                    setChatMessages([
+                      {
+                        sender: "Hana",
+                        text: "Hello, my dear! 😊 It's so lovely to hear from you—how are you feeling today? I'm Hana, your Personal Wellness Companion, here to support your emotional well-being and learning journey.",
+                        type: 'system'
+                      }
+                    ]);
+                  }}
+                  className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center space-x-2 ${
+                    activeAssistant === 'hana'
+                      ? 'bg-pink-500 text-white'
+                      : 'bg-white bg-opacity-20 text-gray-300 hover:bg-opacity-30'
+                  }`}
+                >
+                  <span>💖</span>
+                  <span>Hana</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveAssistant('medical');
+                    setChatMessages([
+                      {
+                        sender: "TELsTP AI Medical Assistant",
+                        text: "مرحباً! I'm your TELsTP AI Medical Assistant, here to support your health and wellness during your educational journey at the Life Science Technology Park.",
+                        type: 'system'
+                      }
+                    ]);
+                  }}
+                  className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center space-x-2 ${
+                    activeAssistant === 'medical'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-white bg-opacity-20 text-gray-300 hover:bg-opacity-30'
+                  }`}
+                >
+                  <span>🏥</span>
+                  <span>Medical</span>
+                </button>
+              </div>
+
+              {/* Chat Interface */}
+              <div className="bg-black bg-opacity-30 rounded-2xl p-4 h-96 overflow-y-auto mb-4">
+                {chatMessages.map((message, index) => (
+                  <div key={index} className={`mb-4 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
+                    <div className={`inline-block px-4 py-2 rounded-2xl max-w-xs lg:max-w-md ${
+                      message.type === 'user'
+                        ? 'bg-blue-500 text-white ml-auto'
+                        : message.type === 'system'
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                        : activeAssistant === 'cyber'
+                        ? 'bg-gray-700 text-white'
+                        : activeAssistant === 'hana'
+                        ? 'bg-pink-500 text-white'
+                        : 'bg-green-500 text-white'
+                    }`}>
+                      <p className="font-semibold mb-1 text-sm">{message.sender}</p>
+                      <p className="text-sm">{message.text}</p>
+                    </div>
+                  </div>
+                ))}
+                
+                {isTyping && (
+                  <div className="mb-4 text-left">
+                    <div className={`inline-block px-4 py-2 rounded-2xl bg-gray-700 text-white`}>
+                      <p className="font-semibold mb-1 text-sm">{assistants[activeAssistant].name}</p>
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={`Ask ${assistants[activeAssistant].name} anything...`}
+                  className="flex-1 p-3 rounded-xl bg-white bg-opacity-20 border border-white border-opacity-30 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  className="px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-xl transition-all duration-300"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+
+            {/* Educational Information Panel */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-700 rounded-3xl p-6">
+              <div className="flex items-start space-x-3">
+                <div className="text-3xl flex-shrink-0">📚</div>
+                <div>
+                  <h2 className="text-xl font-bold mb-3">Educational Purpose Only</h2>
+                  <p className="text-sm">
+                    This tool is designed exclusively for the DELSTP Thomas Technology Park educational program (2025/26).
+                    Our AI mentors are here to support your learning journey while maintaining our commitment to reducing synthetic electromagnetic fields.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-black bg-opacity-50 py-8 mt-12 border-t border-white border-opacity-20">
+        <div className="container mx-auto px-6 text-center">
+          <p className="text-gray-400 mb-2">
+            DELSTP Thomas Technology Park • Life Science Educational Program 2025/26
+          </p>
+          <p className="text-xs text-gray-500">
+            This application is for educational purposes only. All functionality operates within authorized campus networks.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
+
