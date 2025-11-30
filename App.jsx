@@ -58,7 +58,7 @@ function App() {
       name: 'M2-3M Research Portal',
       description: 'Advanced research and AI collaboration platform',
       status: 'operational',
-      url: 'https://your-deployed-m2-3m-url.com', // This would be the actual deployed URL
+      url: 'https://olnow.vercel.app', // This is the live deployed URL based on user's screenshot
       icon: Microscope,
       color: 'bg-green-500',
       agents: 15,
