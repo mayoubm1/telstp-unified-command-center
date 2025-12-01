@@ -4,10 +4,8 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 // https://vite.dev/config/
-
-export default defineConfig({\n  base: './',
-
-
+export default defineConfig({
+  base: './',
   plugins: [react()],
 
   resolve: {
